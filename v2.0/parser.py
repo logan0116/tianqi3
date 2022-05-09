@@ -10,20 +10,16 @@ import argparse
 
 def parameter_parser():
     parser = argparse.ArgumentParser(description='for cnc ner')
-
+    # base
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--max_len", type=int, default=128)
-    parser.add_argument("--embed_dim", type=int, default=768)
-    parser.add_argument("--if_load_pretrain", type=bool, default=False)
-
-    # bi_lstm parameter
-    parser.add_argument("--lstm_dim", type=int, default=256)
-    parser.add_argument("--lstm_layers", type=int, default=4)
-    parser.add_argument("--lstm_dropout", type=float, default=0.5)
-    # crf parameter
-    parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--num_class", type=int, default=8)
-    parser.add_argument("--num_tag", type=int, default=17)
+    parser.add_argument("--dim", type=int, default=256)
+    # file
+    parser.add_argument("--train_file_path", type=str, default="../train.tsv")
+    parser.add_argument("--test_file_path", type=str, default="../test.tsv")
+    parser.add_argument("--model_save_path", type=str, default='trans_e')
+    # trans parameter
+    parser.add_argument("--norm", type=int, default=1)
+    parser.add_argument("--margin", type=float, default=1.0)
 
     return parser.parse_args()
