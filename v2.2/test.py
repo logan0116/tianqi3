@@ -87,15 +87,25 @@
 
 import numpy as np
 
-batch_size = 2
+# batch_size = 2
+#
+# node_set = ['a', 'b', 'c', 'd']
+#
+# s = ['a', 'c', ]
+# print(s)
+# head_or_tail = np.random.randint(2, size=batch_size)
+# print(head_or_tail)
+# random_entities = np.random.choice(node_set, size=2, replace=False)
+# print(random_entities)
+# sn = np.where(head_or_tail == 1, random_entities, s)
+# print(sn)
 
-node_set = ['a', 'b', 'c', 'd']
+a = np.array([1, 12, 13, 14, 5, 6, 7, 8])
+print(a)
+print(np.argsort(-a)[:5])
 
-s = ['a', 'c', ]
-print(s)
-head_or_tail = np.random.randint(2, size=batch_size)
-print(head_or_tail)
-random_entities = np.random.choice(node_set, size=2, replace=False)
-print(random_entities)
-sn = np.where(head_or_tail == 1, random_entities, s)
-print(sn)
+argsort_a = np.argsort(a)
+
+print("argsort_a,从小到大的index:", argsort_a)
+e = argsort_a[::-1]
+print("最大的5位的index:", e[:5])

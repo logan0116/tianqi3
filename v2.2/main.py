@@ -16,7 +16,7 @@ def train():
     args = parameter_parser()
     # 数据处理
     print('data loading...')
-    networkdeal = NetworkDeal(args.link_path)
+    networkdeal = NetworkDeal(args.train_file_path)
     networkdeal.get_index()
     node_size, node_set, label_size, s_list, r_list, t_list = networkdeal.get_data()
     loader = Data.DataLoader(MyDataSet(s_list, r_list, t_list), args.batch_size, True)

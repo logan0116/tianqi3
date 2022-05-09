@@ -15,7 +15,8 @@ def parameter_parser():
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--dim", type=int, default=256)
     # file
-    parser.add_argument("--link_path", type=str, default="../train.tsv")
+    parser.add_argument("--train_file_path", type=str, default="../train.tsv")
+    parser.add_argument("--test_file_path", type=str, default="../test.tsv")
     parser.add_argument("--model_save_path", type=str, default='Graph-transe')
     # trans parameter
     parser.add_argument("--norm", type=int, default=1)
