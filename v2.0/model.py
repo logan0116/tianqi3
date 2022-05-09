@@ -21,9 +21,13 @@ from tqdm import tqdm
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
+def vector_matrix_T(arr, brr, brr_l2):
+    return arr.dot(brr) / (np.sqrt(np.sum(arr * arr)) * brr_l2)
+
+
 class TransE(nn.Module):
 
-    def __init__(self, node_size, link_size, device, norm=1, dim=100, margin=1.0):
+    def __init__(self, node_size, link_size, device, norm, dim, margin):
         super(TransE, self).__init__()
         self.node_size = node_size
         self.link_size = link_size
@@ -37,43 +41,81 @@ class TransE(nn.Module):
     def _init_node_emb(self):
         node_emb = nn.Embedding(num_embeddings=self.node_size,
                                 embedding_dim=self.dim)
-        # uniform_range = 6 / np.sqrt(self.dim)
-        # entities_emb.weight.data.uniform_(-uniform_range, uniform_range)
+        uniform_range = 6 / np.sqrt(self.dim)
+        node_emb.weight.data.uniform_(-uniform_range, uniform_range)
         return node_emb
 
     def _init_link_emb(self):
         link_emb = nn.Embedding(num_embeddings=self.link_size,
                                 embedding_dim=self.dim)
-        # uniform_range = 6 / np.sqrt(self.dim)
-        # relations_emb.weight.data.uniform_(-uniform_range, uniform_range)
+        uniform_range = 6 / np.sqrt(self.dim)
+        link_emb.weight.data.uniform_(-uniform_range, uniform_range)
         return link_emb
 
-    def forward(self, positive_triplets: torch.LongTensor, negative_triplets: torch.LongTensor):
-        """
-        Return model losses based on the input.
-        :param positive_triplets: triplets of positives in Bx3 shape (B - batch, 3 - head, relation and tail)
-        :param negative_triplets: triplets of negatives in Bx3 shape (B - batch, 3 - head, relation and tail)
-        :return: tuple of the model loss, positive triplets loss component, negative triples loss component
-        """
-        positive_distances = self._distance(positive_triplets)
-        negative_distances = self._distance(negative_triplets)
+    def forward(self, sp, tp, sn, tn, r):
+        positive_distances = self._distance(sp, r, tp)
+        negative_distances = self._distance(sn, r, tn)
         return self.loss(positive_distances, negative_distances)
-
-    def predict(self, triplets: torch.LongTensor):
-        """
-        Calculated dissimilarity score for given triplets.
-        :param triplets: triplets in Bx3 shape (B - batch, 3 - head, relation and tail)
-        :return: dissimilarity score for given triplets
-        """
-        return self._distance(triplets)
 
     def loss(self, positive_distances, negative_distances):
         target = torch.tensor([-1], dtype=torch.long, device=self.device)
         return self.criterion(positive_distances, negative_distances, target)
 
-    def _distance(self, triplets):
-        """Triplets should have shape Bx3 where dim 3 are head id, relation id, tail id."""
-        heads = triplets[:, 0]
-        relations = triplets[:, 1]
-        tails = triplets[:, 2]
-        return (self.node_emb(heads) + self.link_emb(relations) - self.node_emb(tails)).norm(p=self.norm, dim=1)
+    def _distance(self, s, r, t):
+        """
+        Triplets should have shape Bx3 where dim 3 are head id, relation id, tail id.
+        """
+        return (self.node_emb(s) + self.link_emb(r) - self.node_emb(t)).norm(p=self.norm, dim=1)
+
+
+class Evaluator:
+    def __init__(self, model_save_path):
+        self.score = 0
+        self.status_best = []
+        self.model_save_path = model_save_path
+
+    def evaluate(self, epoch, model, test_list, loss):
+        torch.set_grad_enabled(False)
+        test_list = np.array(test_list)
+        s_list, r_list, t_list = test_list[:, 0], test_list[:, 1], test_list[:, 2]
+        score, hit10, hit3, hit1 = 0, 0, 0, 0
+        node_emb = model.node_emb.weight.cpu().data.numpy()
+        link_emb = model.link_emb.weight.cpu().data.numpy()
+        node_emb_T = node_emb.T
+        node_emb_L2 = np.sqrt(np.sum(node_emb * node_emb, axis=1))
+
+        test_size = len(s_list)
+
+        with tqdm(total=test_size) as bar:
+            for s, r, t in zip(s_list, r_list, t_list):
+                predict_t = node_emb[s] + link_emb[r]
+                dis = vector_matrix_T(predict_t, node_emb_T, node_emb_L2)
+                dis_top10 = np.argsort(-dis)[:10]
+                index = list(np.where(dis_top10 == t))
+                if index:
+                    index = index[0]
+                    score += 1 / (index + 1)
+                    if index == 0:
+                        hit1 += 1
+                        hit3 += 1
+                        hit10 += 1
+                    elif 0 < index < 4:
+                        hit3 += 1
+                        hit10 += 1
+                    else:
+                        hit10 += 1
+
+                bar.set_description('Evaluate')
+                bar.update(1)
+
+        score, hit10, hit3, hit3 = score / test_size, hit10 / test_size, hit3 / test_size, hit1 / test_size
+
+        status = ["epoch", epoch, "loss", loss, 'score', score,
+                  'hit10:', hit10, 'hit3', hit3, 'hit3', hit1, ]
+        print(status)
+        if self.score < score:
+            self.score = score
+            self.status_best = status
+            torch.save(model.state_dict(), self.model_save_path)
+
+        torch.set_grad_enabled(True)

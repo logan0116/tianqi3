@@ -6,9 +6,24 @@
 # @Software: PyCharm
 
 import pandas as pd
+import numpy as np
 import torch
 import json
 import torch.utils.data as Data
+
+
+def data_split(link_list, rate=0.9):
+    """
+    拆分训练集和验证集
+    """
+    data_size = len(link_list)
+    train_size = int(rate * data_size)
+    test_size = data_size - train_size
+    train_list, test_list = Data.random_split(
+        dataset=link_list,
+        lengths=[train_size, test_size],
+    )
+    return train_list, test_list
 
 
 class NetworkDeal:
@@ -17,33 +32,42 @@ class NetworkDeal:
     """
 
     def __init__(self, link_path):
-        link_list = pd.read_csv(link_path, sep='\t', header=None).values.tolist()
+        self.link_list = pd.read_csv(link_path, sep='\t', header=None).values.tolist()
+
+    def get_index(self):
+        """
+        一次性的
+        :return:
+        """
         node_set = set()
         label_set = set()
-        for link in link_list:
+
+        for link in self.link_list:
             node_set.add(link[0])
             node_set.add(link[2])
             label_set.add(link[1])
+        # entity
         node_set = sorted(list(node_set))
-        label_set = sorted(list(label_set))
-        # 索引
         node_dict = dict(zip(node_set, [i for i in range(len(node_set))]))
-        label_dict = dict(zip(label_set, [i for i in range(len(label_set))]))
-        self.node_num = len(node_dict)
-        self.label_num = len(label_dict)
         with open('../node2index.json', 'w', encoding='UTF-8') as file:
             json.dump(node_dict, file)
+        # link
+        label_set = sorted(list(label_set))
+        label_dict = dict(zip(label_set, [i for i in range(len(label_set))]))
         with open('../label2index.json', 'w', encoding='UTF-8') as file:
             json.dump(label_dict, file)
 
-        # 转换成索引
-        self.s_list = [node_dict[link[0]] for link in link_list]
-        self.r_list = [label_dict[link[1]] for link in link_list]
-        self.t_list = [node_dict[link[2]] for link in link_list]
-
     def get_data(self):
-        return self.node_num, self.label_num, \
-               torch.LongTensor(self.s_list), torch.LongTensor(self.r_list), torch.LongTensor(self.t_list)
+        with open('../node2index.json', 'r', encoding='UTF-8') as file:
+            node_dict = json.load(file)
+        with open('../label2index.json', 'r', encoding='UTF-8') as file:
+            label_dict = json.load(file)
+        # 索引
+        node_num = len(node_dict)
+        label_num = len(label_dict)
+        # 转换成索引
+        link_list = [[node_dict[link[0]], label_dict[link[1]], node_dict[link[2]]] for link in self.link_list]
+        return node_num, label_num, link_list
 
 
 class MyDataSet(Data.Dataset):
@@ -51,11 +75,11 @@ class MyDataSet(Data.Dataset):
     没啥说的，正常的数据载入
     '''
 
-    def __init__(self, s_list, r_list, t_list):
-        self.s_list, self.r_list, self.t_list = s_list, r_list, t_list
+    def __init__(self, link_list):
+        self.link_list = link_list
 
     def __len__(self):
-        return len(self.s_list)
+        return len(self.link_list)
 
     def __getitem__(self, idx):
-        return self.s_list[idx], self.r_list[idx], self.t_list[idx]
+        return self.link_list[idx]

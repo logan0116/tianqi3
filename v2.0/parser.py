@@ -12,8 +12,10 @@ def parameter_parser():
     parser = argparse.ArgumentParser(description='for cnc ner')
     # base
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=0.00001)
     parser.add_argument("--dim", type=int, default=256)
+    parser.add_argument("--cuda_order", type=int, default=0)
     # file
     parser.add_argument("--train_file_path", type=str, default="../train.tsv")
     parser.add_argument("--test_file_path", type=str, default="../test.tsv")
