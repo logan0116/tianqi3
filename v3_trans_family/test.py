@@ -26,10 +26,12 @@ import torch
 from torch.utils.data import random_split
 import torch.nn.functional as F
 
-a = torch.Tensor([1, 2])
-b = torch.Tensor([1, 2])
+a = torch.Tensor([1, 2, 3, 2, 3, 4, 9, 8, 7])
+a = a.view(3, 3)
+print(a)
+b = torch.Tensor([6, 6, 6])
+b = b.view(1, 3)
+print(b)
 
-
-norm = torch.sum(a * b, -1, True)
-
-print(norm)
+c = torch.matmul(b, a)
+print(c.view(3))

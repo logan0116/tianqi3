@@ -11,7 +11,7 @@ import argparse
 def parameter_parser():
     parser = argparse.ArgumentParser(description='for cnc ner')
     # base
-    parser.add_argument("--model", type=str, default='trans_h')
+    parser.add_argument("--model", type=str, default='trans_r')
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--lr", type=float, default=0.00001)

@@ -15,6 +15,8 @@ def model_load(args, node_size, label_size, device):
         trans_model = TransE(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     elif args.model == "trans_h":
         trans_model = TransH(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+    elif args.model == "trans_r":
+        trans_model = TransR(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     else:
         raise ValueError('model not exist.')
     return trans_model
@@ -67,7 +69,7 @@ def train():
                 bar.set_description('Epoch ' + str(epoch))
                 bar.set_postfix(loss=loss)
                 bar.update(1)
-        if epoch % 10 == 0:
+        if epoch % 5 == 0 and epoch > 0:
             evaluator.evaluate(epoch, trans_model, test_list, np.mean(loss_collector))
 
     print(evaluator.status_best)
