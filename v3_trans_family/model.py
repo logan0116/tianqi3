@@ -252,6 +252,8 @@ class Evaluator:
         self.score = 0
         self.status_best = []
         self.model_save_path = model_save_path
+        if not os.path.exists(self.model_save_path):
+            os.mkdir(self.model_save_path)
 
     def evaluate(self, epoch, model, test_list, loss):
         torch.set_grad_enabled(False)
@@ -295,6 +297,6 @@ class Evaluator:
         if self.score < score:
             self.score = score
             self.status_best = status
-            torch.save(model.state_dict(), self.model_save_path)
+        torch.save(model.state_dict(), self.model_save_path + '/epoch-' + str(epoch))
 
         torch.set_grad_enabled(True)

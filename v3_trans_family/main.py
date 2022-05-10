@@ -31,7 +31,7 @@ def train():
     node_size, label_size, link_list = networkdeal.get_data()
     train_list, test_list = data_split(link_list, rate=0.9)
     loader = Data.DataLoader(MyDataSet(train_list), args.batch_size, True)
-    print('data load done.')
+    print('    data load done.')
 
     # cuda
     device = torch.device("cuda:" + str(args.cuda_order) if torch.cuda.is_available() else "cpu")
@@ -39,15 +39,16 @@ def train():
 
     # 模型初始化
     print('model loading...')
-    print('model:', args.model)
+    print('    model:', args.model)
     trans_model = model_load(args, node_size, label_size, device)
     trans_model.to(device)
     optimizer = optim.Adam(trans_model.parameters(), lr=args.lr)
-    print('model load done.')
+    print('    model load done.')
 
     # 模型评估
-    evaluator = Evaluator(args.model_save_path)
+    evaluator = Evaluator(args.model)
 
+    print('training...')
     for epoch in range(args.epochs):
         loss_collector = []
         with tqdm(total=len(loader)) as bar:
