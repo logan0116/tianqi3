@@ -45,10 +45,13 @@ if __name__ == '__main__':
     device = torch.device("cuda:" + cuda_order if torch.cuda.is_available() else "cpu")
     print('device:', device)
     # model load
-    trans_e = TransE(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
-    trans_e.load_state_dict(torch.load(args.model_save_path))
-    node_emb = trans_e.node_emb.weight.cpu().data.numpy()
-    link_emb = trans_e.link_emb.weight.cpu().data.numpy()
+    print('model loading...')
+    print('    model:', args.model)
+    trans_model = model_load(args, node_size, label_size, device)
+    trans_model.load_state_dict(torch.load(args.model + '/epoch-' + str(args.best_epoch)))
+    print('    model load done.')
+    node_emb = trans_model.node_emb.weight.data.numpy()
+    link_emb = trans_model.link_emb.weight.data.numpy()
     node_emb_T = node_emb.T
     node_emb_L2 = np.sqrt(np.sum(node_emb * node_emb, axis=1))
     # 结果导出
@@ -59,4 +62,4 @@ if __name__ == '__main__':
         predict_t = node_emb[link[0]] + link_emb[link[1]]
         dis = vector_matrix_T(predict_t, node_emb_T, node_emb_L2)
         dis_top10 = np.argsort(-dis)[:10]
-        csv_writer.writerow(link_origin + [index2node[node[0]] for node in dis_top10.tolist()])
+        csv_writer.writerow(link_origin + [index2node[node] for node in dis_top10.tolist()])

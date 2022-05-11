@@ -18,7 +18,17 @@ import sys
 import os
 from tqdm import tqdm
 
-from sklearn.metrics import precision_score, recall_score, f1_score
+
+def model_load(args, node_size, label_size, device):
+    if args.model == "trans_e":
+        trans_model = TransE(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+    elif args.model == "trans_h":
+        trans_model = TransH(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+    elif args.model == "trans_r":
+        trans_model = TransR(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+    else:
+        raise ValueError('model not exist.')
+    return trans_model
 
 
 def vector_matrix_T(arr, brr, brr_l2):
