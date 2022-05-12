@@ -29,7 +29,9 @@ def model_load(args, node_size, label_size, device):
     elif args.model == "trans_a":
         trans_model = TransA(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
                              L=args.L, C=args.C, lam=args.lam)
-
+    elif args.model == "trans_ad":
+        trans_model = TransAD(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
+                              L=args.L, C=args.C, lam=args.lam)
     else:
         raise ValueError('model not exist.')
     return trans_model
@@ -334,6 +336,107 @@ class TransA(nn.Module):
         sn_emb = self.node_emb(sn)
         tn_emb = self.node_emb(tn)
         r_emb = self.link_emb(r)
+
+        # Wr更新
+        self.calculateWr(sp_emb, tp_emb, sn_emb, tn_emb, r_emb, r)
+        positive_distances = self._distance(sp_emb, r_emb, tp_emb, r)
+        negative_distances = self._distance(sn_emb, r_emb, tn_emb, r)
+
+        # Calculate loss
+        margin_loss = 1 / size * torch.sum(F.relu(positive_distances - negative_distances + self.margin))
+        wr_loss = 1 / self.link_size * torch.norm(input=self.Wr, p=self.L)
+        weight_loss = 1 / self.node_size * torch.norm(input=self.node_emb.weight, p=self.L) + \
+                      1 / self.link_size * torch.norm(input=self.link_emb.weight, p=self.L)
+
+        return margin_loss + self.lam * wr_loss + self.C * weight_loss
+
+
+class TransAD(nn.Module):
+    def __init__(self, node_size, link_size, device, norm, dim, margin, L, C, lam):
+        super(TransAD, self).__init__()
+        self.node_size = node_size
+        self.link_size = link_size
+        self.device = device
+        self.norm = norm
+        self.dim = dim
+        self.node_emb = self._init_node_emb()
+        self.link_emb = self._init_link_emb()
+        self.node_transfer = self._init_node_emb()
+        self.link_transfer = self._init_link_emb()
+        self.L = L
+        self.C = C
+        self.lam = lam
+        # Wr transA 核心的内容
+        self.Wr = torch.zeros((self.link_size, self.dim, self.dim), device=self.device)
+        self.margin = margin
+
+    def _init_node_emb(self):
+        node_emb = nn.Embedding(num_embeddings=self.node_size,
+                                embedding_dim=self.dim)
+        uniform_range = 6 / np.sqrt(self.dim)
+        node_emb.weight.data.uniform_(-uniform_range, uniform_range)
+        return node_emb
+
+    def _init_link_emb(self):
+        link_emb = nn.Embedding(num_embeddings=self.link_size,
+                                embedding_dim=self.dim)
+        uniform_range = 6 / np.sqrt(self.dim)
+        link_emb.weight.data.uniform_(-uniform_range, uniform_range)
+        return link_emb
+
+    def _transfer(self, e, e_transfer, r_transfer):
+        """
+        这里需要完成的是：h = (rp * hp + I) * h
+        可以化简为：h = rp * (hp * h) + h
+        因为我这里实体和连接的维数是一样的，所以这个部分还是相当简单的
+        """
+        e = e + torch.sum(e * e_transfer, -1, True) * r_transfer
+        return F.normalize(e, p=2, dim=-1)
+
+    def calculateWr(self, sp_emb, tp_emb, sn_emb, tn_emb, r_emb, r):
+        """
+        对wr中的矩阵进行更新
+        """
+        error_p = torch.unsqueeze(torch.abs(sp_emb + r_emb - tp_emb), dim=1)
+        error_n = torch.unsqueeze(torch.abs(sn_emb + r_emb - tn_emb), dim=1)
+        # 讲道理，这个求和还是不能理解，测试一个不求和版本的。
+        self.Wr[r] += torch.sum(torch.matmul(error_n.permute((0, 2, 1)), error_n), dim=0) - \
+                      torch.sum(torch.matmul(error_p.permute((0, 2, 1)), error_p), dim=0)
+
+        # self.Wr[r] += torch.matmul(error_n.permute((0, 2, 1)), error_n) - \
+        #               torch.matmul(error_p.permute((0, 2, 1)), error_p)
+
+    def _distance(self, s_emb, r_emb, t_emb, r):
+        """
+        Triplets should have shape Bx3 where dim 3 are head id, relation id, tail id.
+        """
+        wr = self.Wr[r]
+        # (B, E) -> (B, 1, E) * (B, E, E) * (B, E, 1) -> (B, 1, 1) -> (B, )
+        error = torch.unsqueeze(torch.abs(s_emb + r_emb - t_emb), dim=1)
+        error = torch.matmul(torch.matmul(error, wr), error.permute((0, 2, 1)))
+        return torch.squeeze(error)
+
+    def forward(self, sp, tp, sn, tn, r):
+        size = sp.size()[0]
+        # positive
+        sp_emb = self.node_emb(sp)
+        tp_emb = self.node_emb(tp)
+        # negative
+        sn_emb = self.node_emb(sn)
+        tn_emb = self.node_emb(tn)
+        r_emb = self.link_emb(r)
+
+        # 投影
+        sp_transfer = self.node_transfer(sp)
+        tp_transfer = self.node_transfer(tp)
+        sn_transfer = self.node_transfer(sn)
+        tn_transfer = self.node_transfer(tn)
+        r_transfer = self.link_transfer(r)
+        #
+        sp_emb = self._transfer(sp_emb, sp_transfer, r_transfer)
+        tp_emb = self._transfer(tp_emb, tp_transfer, r_transfer)
+        sn_emb = self._transfer(sn_emb, sn_transfer, r_transfer)
+        tn_emb = self._transfer(tn_emb, tn_transfer, r_transfer)
 
         # Wr更新
         self.calculateWr(sp_emb, tp_emb, sn_emb, tn_emb, r_emb, r)
