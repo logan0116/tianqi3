@@ -372,6 +372,8 @@ class TransAD(nn.Module):
         self.lam = lam
         # Wr transA 核心的内容
         self.Wr = torch.zeros((self.link_size, self.dim, self.dim), device=self.device)
+        self.Wr_replace = torch.zeros((self.link_size, self.dim, self.dim), device=self.device)
+
         self.margin = margin
 
     def _init_node_emb(self):
@@ -406,6 +408,9 @@ class TransAD(nn.Module):
         # 讲道理，这个求和还是不能理解，测试一个不求和版本的。
         self.Wr[r] += torch.sum(torch.matmul(error_n.permute((0, 2, 1)), error_n), dim=0) -\
                        torch.sum(torch.matmul(error_p.permute((0, 2, 1)), error_p), dim=0)
+
+        self.Wr[r] = torch.where(self.Wr[r] < 0, self.Wr_replace[r], self.Wr[r])
+
 
         # self.Wr[r] += torch.matmul(error_n.permute((0, 2, 1)), error_n) - \
         #               torch.matmul(error_p.permute((0, 2, 1)), error_p)
