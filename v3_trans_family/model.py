@@ -288,6 +288,8 @@ class TransA(nn.Module):
         self.link_emb = self._init_link_emb()
         # Wr transA 核心的内容
         self.Wr = torch.zeros((self.link_size, self.dim, self.dim), device=self.device)
+        self.Wr_replace = torch.zeros((self.link_size, self.dim, self.dim), device=self.device)
+
         self.margin = margin
 
     def _init_node_emb(self):
@@ -313,6 +315,8 @@ class TransA(nn.Module):
         # 讲道理，这个求和还是不能理解，测试一个不求和版本的。
         self.Wr[r] += torch.sum(torch.matmul(error_n.permute((0, 2, 1)), error_n), dim=0) - \
                       torch.sum(torch.matmul(error_p.permute((0, 2, 1)), error_p), dim=0)
+
+        self.Wr[r] = torch.where(self.Wr[r] < 0, self.Wr_replace[r], self.Wr[r])
 
         # self.Wr[r] += torch.matmul(error_n.permute((0, 2, 1)), error_n) - \
         #               torch.matmul(error_p.permute((0, 2, 1)), error_p)
@@ -400,8 +404,8 @@ class TransAD(nn.Module):
         error_p = torch.unsqueeze(torch.abs(sp_emb + r_emb - tp_emb), dim=1)
         error_n = torch.unsqueeze(torch.abs(sn_emb + r_emb - tn_emb), dim=1)
         # 讲道理，这个求和还是不能理解，测试一个不求和版本的。
-        self.Wr[r] += torch.sum(torch.matmul(error_n.permute((0, 2, 1)), error_n), dim=0) - \
-                      torch.sum(torch.matmul(error_p.permute((0, 2, 1)), error_p), dim=0)
+        self.Wr[r] += torch.sum(torch.matmul(error_n.permute((0, 2, 1)), error_n), dim=0) -\
+                       torch.sum(torch.matmul(error_p.permute((0, 2, 1)), error_p), dim=0)
 
         # self.Wr[r] += torch.matmul(error_n.permute((0, 2, 1)), error_n) - \
         #               torch.matmul(error_p.permute((0, 2, 1)), error_p)
@@ -445,9 +449,9 @@ class TransAD(nn.Module):
 
         # Calculate loss
         margin_loss = 1 / size * torch.sum(F.relu(positive_distances - negative_distances + self.margin))
-        wr_loss = 1 / self.link_size * torch.norm(input=self.Wr, p=self.L)
-        weight_loss = 1 / self.node_size * torch.norm(input=self.node_emb.weight, p=self.L) + \
-                      1 / self.link_size * torch.norm(input=self.link_emb.weight, p=self.L)
+        wr_loss = 1 / self.link_size * torch.norm(self.Wr, p=self.L)
+        weight_loss = 1 / self.node_size * torch.norm(self.node_emb.weight, p=self.L) + \
+                      1 / self.link_size * torch.norm(self.link_emb.weight, p=self.L)
 
         return margin_loss + self.lam * wr_loss + self.C * weight_loss
 
