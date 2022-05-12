@@ -51,8 +51,8 @@ def train():
                 sp, tp = sp.to(device), tp.to(device)
                 sn, tn = sn.to(device), tn.to(device)
 
-                loss = trans_model(sp, tp, sn, tn, r).mean()
-                loss.backward()
+                loss = trans_model(sp, tp, sn, tn, r)
+                loss.backward(retain_graph=True)
                 optimizer.step()
                 loss_collector.append(loss.item())
                 bar.set_description('Epoch ' + str(epoch))
