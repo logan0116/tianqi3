@@ -23,22 +23,46 @@
 import numpy as np
 import torch
 
-from torch.utils.data import random_split
-import torch.nn.functional as F
+#
+# from torch.utils.data import random_split
+# import torch.nn.functional as F
+#
+# a = torch.Tensor([2, 3, 4, 5])
+# c = torch.Tensor([3, 4, 5, 6, 0, 1, 2, 3])
+#
+# b = a.view(2, 1, 2)
+# c = c.view(2, 2, 2)
+# print(c)
+#
+# error = torch.matmul(torch.matmul(b, c), b.permute((0, 2, 1)))
+# print(error)
+#
+# # a = torch.Tensor([[1, 2, 3], [2, 3, 4], [9, 8, 7]])
+# # b = torch.LongTensor([0, 2])
+# # print(a)
+# # a[b] += torch.Tensor([1, 1, 1])
+# # print(a)
+# # # print(torch.unsqueeze(a[b], dim=0))
 
-a = torch.Tensor([2, 3, 4, 5])
-c = torch.Tensor([3, 4, 5, 6, 0, 1, 2, 3])
+theta = torch.Tensor([0.1, 0.2])
 
-b = a.view(2, 1, 2)
-c = c.view(2, 2, 2)
-print(c)
+dim = 6
+batch_size = 2
+a = torch.cat([torch.randperm(dim * dim) for _ in range(2)],dim=-1)
+print(a.shape)
+print(a)
+a = a.view(-1, dim, dim)
+zero = torch.zeros_like(a)
+print(a)
+theta = theta * dim * dim
+theta = theta.view(-1, 1, 1).expand(-1, dim, dim)
+print(theta)
 
-error = torch.matmul(torch.matmul(b, c), b.permute((0, 2, 1)))
-print(error)
+a = torch.where(a > theta, zero, a)
+print(a)
 
-# a = torch.Tensor([[1, 2, 3], [2, 3, 4], [9, 8, 7]])
-# b = torch.LongTensor([0, 2])
+# a = a[torch.randperm(a.size(0))]
 # print(a)
-# a[b] += torch.Tensor([1, 1, 1])
+#
+# a = a[:, torch.randperm(a.size(1))]
 # print(a)
-# # print(torch.unsqueeze(a[b], dim=0))

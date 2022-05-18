@@ -11,10 +11,10 @@ import argparse
 def parameter_parser():
     parser = argparse.ArgumentParser(description='for cnc ner')
     # base
-    parser.add_argument("--model", type=str, default='trans_a')
+    parser.add_argument("--model", type=str, default='transparse')
     parser.add_argument("--epochs", type=int, default=101)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--lr", type=float, default=0.00001)
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--dim", type=int, default=64)
     parser.add_argument("--cuda_order", type=str, default=0)
     # file
@@ -26,7 +26,9 @@ def parameter_parser():
     # transA 的三个参数
     parser.add_argument("--L", type=int, default=2)
     parser.add_argument("--lam", type=float, default=0.01)
-    parser.add_argument("--C", type=float, default=0.2)
+    parser.add_argument("--C", type=float, default=0.00002)
+    # transparse 的参数
+    parser.add_argument("--theta", type=float, default=0.5)
     # predict parameter
     parser.add_argument("--best_epoch", type=str, default=10)
 

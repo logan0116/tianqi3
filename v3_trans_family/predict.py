@@ -7,7 +7,7 @@
 
 
 from utils import *
-from model import *
+from model_loader import *
 from parser import *
 
 import csv

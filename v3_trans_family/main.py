@@ -5,8 +5,10 @@
 # @FileName: main.py
 # @Software: PyCharm
 
+import torch.optim as optim
+
 from utils import *
-from model import *
+from model_loader import *
 from parser import *
 
 
@@ -17,6 +19,7 @@ def train():
     networkdeal = NetworkDeal(args.train_file_path)
     networkdeal.get_index()
     node_size, label_size, link_list = networkdeal.get_data()
+    node_degree = networkdeal.get_degree()
     train_list, test_list = data_split(link_list, rate=0.9)
     loader = Data.DataLoader(MyDataSet(train_list), args.batch_size, True)
     print('    data load done.')
@@ -28,7 +31,7 @@ def train():
     # 模型初始化
     print('model loading...')
     print('    model:', args.model)
-    trans_model = model_load(args, node_size, label_size, device)
+    trans_model = model_load(args, node_size, label_size, node_degree, device)
     trans_model.to(device)
     optimizer = optim.Adam(trans_model.parameters(), lr=args.lr)
     print('    model load done.')

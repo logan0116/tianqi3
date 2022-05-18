@@ -57,6 +57,28 @@ class NetworkDeal:
         with open('../label2index.json', 'w', encoding='UTF-8') as file:
             json.dump(label_dict, file)
 
+    def get_degree(self):
+        """
+        TranSparse
+        """
+        with open('../node2index.json', 'r', encoding='UTF-8') as file:
+            node_dict = json.load(file)
+        with open('../label2index.json', 'r', encoding='UTF-8') as file:
+            label_dict = json.load(file)
+        # 索引
+        node_num = len(node_dict)
+        label_num = len(label_dict)
+        node_degree = np.zeros((node_num, label_num, 2))
+        for link in self.link_list:
+            s = node_dict[link[0]]
+            t = node_dict[link[2]]
+            r = label_dict[link[1]]
+            # out_degree
+            node_degree[s][r][0] += 1
+            # in_degree
+            node_degree[t][r][1] += 1
+        return node_degree
+
     def get_data(self):
         with open('../node2index.json', 'r', encoding='UTF-8') as file:
             node_dict = json.load(file)
