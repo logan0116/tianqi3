@@ -8,29 +8,33 @@
 
 import torch
 import numpy as np
-import importlib
+from model.trans_e import TransE
+from model.trans_h import TransH
+from model.trans_r import TransR
+from model.trans_d import TransD
+from model.trans_a import TransA
+from model.transparse import transparse
 import os
 from tqdm import tqdm
 
 
 def model_load(args, node_size, label_size, node_degree, device):
-    model = importlib.import_module('model.' + args.model)
     if args.model == "trans_e":
-        trans_model = model.TransE(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+        trans_model = TransE(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     elif args.model == "trans_h":
-        trans_model = model.TransH(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+        trans_model = TransH(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     elif args.model == "trans_r":
-        trans_model = model.TransR(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+        trans_model = TransR(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     elif args.model == "trans_d":
-        trans_model = model.TransD(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
+        trans_model = TransD(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin)
     elif args.model == "trans_a":
-        trans_model = model.TransA(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
+        trans_model = TransA(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
                                    L=args.L, C=args.C, lam=args.lam)
-    elif args.model == "trans_ad":
-        trans_model = model.TransAD(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
-                                    L=args.L, C=args.C, lam=args.lam)
+    # elif args.model == "trans_ad":
+    #     trans_model = TransAD(node_size, label_size, device, norm=args.norm, dim=args.dim, margin=args.margin,
+    #                                 L=args.L, C=args.C, lam=args.lam)
     elif args.model == "transparse":
-        trans_model = model.transparse(node_size, label_size, node_degree, device, norm=args.norm, dim=args.dim,
+        trans_model = transparse(node_size, label_size, node_degree, device, norm=args.norm, dim=args.dim,
                                        margin=args.margin, theta=args.theta)
 
     else:
